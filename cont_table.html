@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<style>
+
+body {
+  font: 10px sans-serif;
+}
+
+td, th {
+    padding: 2px 4px;
+	border: 1px black solid;
+}
+
+th {
+    font-weight: bold;
+}
+
+</style>
+
+<title>Bottom Right Table</title>
+
+<body id = "con_table">
+
+<script src="http://d3js.org/d3.v3.min.js"></script>
+<script src="share.js"></script>
+<script src="function_wheel.js"></script>
+
+<div id="BottomRight"></div>
+<script>
+var xxx;
+
+d3.csv("files/conTable_ts.csv",
+	function(error, table_data) {
+	
+		if (error) {  		
+		console.log(error);  	
+    } else { 
+	
+/*var detail_table_data = table_data;
+
+share.data("detail_table_data",detail_table_data);	
+
+xxx = table_data.filter(function(d){
+		return d.UserID === 1;
+		});
+
+*/
+// render the table
+conTable = tabulate(table_data, ["MovieID","other","academic/educator","artist","clerical/admin","college/grad student","customer service","doctor/health care",
+				"executive/managerial","farmer","homemaker","K-12 student","lawyer","programmer","retired","sales/marketing",
+				"scientist","self-employed","technician/engineer","tradesman/craftsman","unemployed","writer"],"#BottomRight");
+
+// uppercase the column headers
+conTable.selectAll("thead th")
+    .text(function(column) {
+        return column.charAt(0).toUpperCase() + column.substr(1);
+    });
+
+
+}});
+
+
+</script>
+
+</body>

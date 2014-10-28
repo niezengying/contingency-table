@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<style>
+
+body {
+  font: 10px sans-serif;
+}
+
+table {
+	border-collapse: collapse;
+	border: 2px black solid;
+}
+
+tbody {
+	border: 1px black solid;
+	padding: 5px;
+}
+
+td, th {
+    padding: 2px 4px;
+	border: 1px black solid;
+}
+
+th {
+    font-weight: bold;
+}
+
+</style>
+
+<title>Original Data Table</title>
+
+<body>
+
+<script src="http://d3js.org/d3.v3.min.js"></script>
+<script src="share.js"></script>
+<script src="function_wheel.js"></script>
+
+<div id="OriginalData"></div>
+<script>
+
+d3.csv("files/ratings.csv",
+	function(error, table_data) {
+		if (error) {  		
+		console.log(error);  	
+    } else { 
+	
+// render the table
+OriginalTable = tabulateBigt(table_data, ["ID","UserID","MovieID","Rating"]);
+
+// uppercase the column headers
+/*OriginalTable.selectAll("thead th")
+    .text(function(column) {
+        return column.charAt(0).toUpperCase() + column.substr(1);
+    });*/
+
+}});
+
+</script>
+
+</body>

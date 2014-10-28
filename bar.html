@@ -1,0 +1,204 @@
+ 
+<!DOCTYPE html>
+<meta charset="utf-8">
+ <style type="text/css">
+       svg {
+         shape-rendering: crispEdges;
+        }
+		#bar_chart text {
+		 font-size:13px;
+		}
+       #stackedbudget-chart line {
+         stroke: #000;
+       }
+       .rule line {
+         stroke: #eee;
+       }
+       #histogram-trellis-chart rect {
+          fill: darkblue;
+          stroke: white;
+       }
+       #histogram-trellis-chart line {
+          stroke: black;
+       }
+	   
+	   
+
+       #treemap-transition .cell {
+         border: solid 1px white;
+         font: 10px;
+         color:white;
+         line-height: 12px;
+         overflow: hidden;
+         position: absolute;
+         text-indent: 2px;
+         text-align: center;
+         vertical-align: middle;
+      }
+
+       table { 
+         border-collapse: collapse;
+         border: 2px solid #FFFAFA; 
+       }
+       td {
+         padding: 10px; 
+       }
+  </style>
+  
+ <div>
+ <p></t></t></t></p>
+	  <input type="checkbox" id="dict_sort" onclick="dict_sort()">dict_sort</input>
+      <input type="checkbox" id="num_sort" onclick="num_sort()">num_sort</input>
+ </div>
+  
+<script src="http://d3js.org/d3.v3.min.js"></script>
+<script src="share.js"></script>
+<script src="function_wheel.js"></script>
+
+<div id="bar_chart">
+<script type="text/javascript">
+
+
+var sum_rol_data = share.data("sum_rols");//fj+
+var colorlist = ["steelblue", "#a9a9a9"];
+
+var w = 135,
+    h = 400,
+    labelpad = 70,
+	bar_length = d3.max(sum_rol_data),
+	
+	index_range = d3.range(sum_rol_data.length);
+  
+    x = d3.scale.linear().domain([0, bar_length]).range([0,w]),//x轴
+    y = d3.scale.ordinal().domain(index_range).rangeBands([0, h], .1);//y坐标
+
+
+var vis = d3.select("#bar_chart") //svg
+  .append("svg:svg")
+    .attr("width", w + 200)
+    .attr("height", h + 100)
+  .append("svg:g")
+    .attr("transform", "translate(28,20)");//svg 
+
+var bars = vis.selectAll("g.bar")//bar
+    .data(sum_rol_data)
+  .enter().append("svg:g")
+    .attr("class", "bar")
+    .attr("transform", function(d, i) { return "translate(" + labelpad + "," + y(i) + ")"; });//bar 的x轴位置
+
+	//add background
+bars.append("svg:rect")	
+    .attr("fill", "#d3d3d3" )   //Alternate colors
+    .attr("width", w+10)
+    .attr("height", y.rangeBand())
+	.on("click",select_sector)	/*背景bar*/
+	.append("title")
+		.text(function(d,i) { return d;});
+		
+	//add foreground	
+var foreground = bars.append("svg:rect")				//    + rectangle
+    //.attr("fill", function(d, i) { return colorlist[i % 2]; } )   //Alternate colors
+    .attr("fill", "steelblue"  )   //Alternate colors
+    .attr("width", x)
+    .attr("height", y.rangeBand())
+	.on("mouseover",mouse_over)
+	.on("mouseout",mouse_out)
+	.on("click",select_sector)
+	.append("title")
+		.text(function(d,i) { return d;})//数值bar;
+		
+bars.append("svg:text")//加左边文字
+    .attr("x", 0)
+    .attr("y", y.rangeBand())
+    .attr("dx", -6)
+    .attr("dy", "-.42em")
+    .attr("text-anchor", "end")
+    .text(function(d, i) { return occupation_list[i]; });
+	
+bars.append("svg:text")//加右边文字
+   .attr("x", w+5)
+    // .attr("x", function(d,i){return x+6;})
+    .attr("y", y.rangeBand())
+    .attr("dx", +6)
+    .attr("dy", "-.42em")
+    .attr("text-anchor", "start")
+    .text(function(d, i) { return d; });
+		
+
+var rules = vis.selectAll("g.rule")
+    .data(x.ticks(5))
+  .enter().append("svg:g")
+    .attr("class", "rule")
+    .attr("transform", function(d) { return "translate(" + x(d) + ", 0)"; });
+
+rules.append("svg:line")
+    .attr("y1", h)
+    .attr("y2", h + 6)
+    .attr("x1", labelpad)
+    .attr("x2", labelpad)
+    .attr("stroke", "black");
+
+rules.append("svg:line")//中间的白线
+    .attr("y1", 0)
+    .attr("y2", h)
+    .attr("x1", labelpad)
+    .attr("x2", labelpad)
+    .attr("stroke", "white")
+    .attr("stroke-opacity", .3);
+
+/*rules.append("svg:text")//刻度
+    .attr("y",-10)
+    .attr("x", labelpad)
+    .attr("dy", ".71em")
+    .attr("text-anchor", "middle")
+    .text(x.tickFormat(10));	*/
+
+////////////////////////////////////////////function///////////////////function////////////////////////////////////////////
+
+function dict_sort(){
+	
+}
+
+function nums_sort(){
+	
+}	
+
+function mouse_over(d,i)
+{	
+	index2 = i;
+	d3.select(this).transition()
+		.style("fill","orange ");
+}
+
+function mouse_out(d,i)
+{
+	index2 = i;
+	d3.select(this).transition()
+		.style("fill","steelblue ");
+}	
+
+first_bar_click = 1;
+	
+function select_sector(d,i)
+{
+	//alert("click bar to wheel");
+	//window.parent.frame[2].location.reload();
+	//console.log(window.parent.frame[2].name);
+	
+	//bar_clicked_index = i;
+	//click_bar2wheel = 1;
+	//bar_clicked_d = d;	//全局变量，确定显示什么
+	if(first_bar_click)
+	{
+		first_bar_click = 0;
+		window.top.wheel_win.unfold(d,i);
+	}else{		
+	window.top.wheel_win.clear();
+	window.top.wheel_win.unfold(d,i);
+	}
+
+}	
+	
+</script>
+</div>
+</body>

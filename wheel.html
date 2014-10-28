@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+
+<meta charset="utf-8">
+<style>
+
+body {
+  font: 15px sans-serif;
+}
+
+.chord path {
+  fill-opacity: .67;
+  stroke: #434;
+  stroke-width: .5px;
+}
+
+.group text {
+  font: 18px sans-serif;
+  pointer-events: none;
+}
+
+.arc path {
+  stroke: #fff;
+}
+
+foreground
+{	
+	z-index:8;
+}
+
+path.fade {
+  display: none;
+}
+
+#hist_short {
+	z-index:6;
+}
+
+</style>
+<title>Contingency Wheel</title>
+<body>
+<div>
+      <input type="checkbox" id="set_bin" onclick="set_bin()">Set bin</input>
+      <input type="checkbox" id="all_positive" onclick="postv_or_not()">All/Postv</input>
+ </div>
+ 
+<script src="http://d3js.org/d3.v3.min.js"></script>
+<script src="d3.v3.js"></script>
+<script src="share.js"></script>
+<script src="function_wheel.js"></script>
+
+
+<div id="wheel_chart">
+<script>
+
+
+//add svg
+var width = 960,
+    height =960,
+    innerRadius = Math.min(width-180, height-180) * .20,
+    outerRadius = innerRadius * 2,
+	Radius = innerRadius,
+	Radius_2 = outerRadius,
+	subradius=outerRadius - innerRadius,
+	arcNum = 21,
+
+	dataset = [];	
+	for(i =0;i<arcNum;i++) {
+	dataset.push(1);
+	}
+	
+var pie = d3.layout.pie()
+    .sort(null)
+    .value(function(d) {return d;});	
+	
+var fill = d3.scale.category20b();
+
+var svg = d3.select("body").append("svg")
+    .attr("width", width)
+    .attr("height", height)
+  .append("g")
+    .attr("transform", "translate(" + width* 7/ 16 + "," + height *3/ 8 + ")");
+
+var arc = d3.svg.arc()
+		.innerRadius(innerRadius);
+		
+var path = d3.svg.chord()
+		.radius(innerRadius);
+		
+
+var x = d3.scale.linear()
+    .domain(Range)
+    .range([innerRadius,outerRadius]);
+	
+var bnum = 20;
+
+
+
+	
+/////////////////////////////arcs///////////////and//////////////chords///////////////////
+	
+d3.text("files/reference_col.csv", function(error, data) {
+
+	if (error) {  					//If error is not null, then something went wrong.
+	console.log(error);  	//Log the error, so we can troubleshoot.
+    } else {      					//If no error, then the file loaded correctly. Yay!
+
+var min = 0, max = 0;
+
+var  reference_col = d3.csv.parseRows(data,function(data){
+				index = d3.range(data.length)
+				index.forEach(function(j){
+				data[j] = +data[j];
+				});
+				if(min < d3.min(data))
+					min = d3.min(data);
+				if(max < d3.max(data))
+					max = d3.max(data);
+				return data;
+		});	
+		
+console.log(min);
+console.log(max);
+
+var chords_color = d3.scale.linear()
+				.domain([min*100,max*100])
+				.range([0.1,1]);
+				
+// Compute the chord layout.
+var chord2 = chordLayout2()
+    .padding(.023)
+    .sortSubgroups(d3.descending)
+    .matrix(reference_col);
+
+//Add a group per occupation.
+ group = svg.append("g")
+	.attr("id","group").selectAll("g")		//arcs
+    .data(chord2.groups)
+  .enter().append("g");
+ 
+ //group.on("click",unfold);
+
+//add group ticks
+var ticks = group.selectAll("g").attr("id","group_ticks")
+    .data(groupTicks)
+  .enter().append("g")
+    .attr("transform", function(d) {
+      return "rotate(" + (d.angle * 180 / Math.PI - 90) + ")"
+          + "translate(" + outerRadius + ",0)";
+    });
+
+
+ticks.append("line")
+    .attr("x1", 1)
+    .attr("y1", 0)
+    .attr("x2", 5)
+    .attr("y2", 0)
+    .style("stroke", "#000");
+	
+	
+//add group text label
+var texts = group.append("text")
+					.attr("x", function(d) { 
+					a = (d.startAngle + d.endAngle)/2;		
+						return Math.sin(a)*(outerRadius+12);								
+					})
+			.attr("y", function(d) { 
+					a = (d.startAngle + d.endAngle)/2 ;
+						return 0 - Math.cos(a)*(outerRadius+12);
+					})
+			.attr("text-anchor", function(d) { 
+					a = (d.startAngle + d.endAngle)/2;
+					//console.log(a);
+					pi = Math.PI;
+					if( Math.sin(a)>0){
+						return "start";
+						}else{
+						return "end";
+						}
+					})
+			.text(function(d, i) { return occupation_list[i]; });
+		
+//add group sectors
+var sectors = group.append("path")
+	.attr("id","sectors")
+	.attr("d",arc.outerRadius(outerRadius))
+	.style("fill", "#D8BFD8")
+    .style("stroke", "#D8BFD8")
+	.on("mouseover", fade(svg))
+	.on("click",unfold)
+	.append("title")
+		.text(function(d,i){
+			return occupation_list[i]+":"+ sum_rols[i];
+			});
+	//.on("mouseover", fade(0.1,svg));	
+
+			
+/////////////////////add mychords//////////
+ mychords = svg.append("g")
+	.attr("id","mychords")
+	.attr("class", "chord")
+  .selectAll(".chord")
+    .data(chord2.chords)
+  .enter().append("path")
+	.attr("d", path)
+    //.style("fill", function(d) { return fill(d.target.index); });
+	//.style("fill", "orange")
+	.style("fill", function(d) { return fill(d.source.value); })
+	.style("opacity",chords_color(function(d){return d.source.value;}));
+	
+mychords.append("title")
+		.text(function(d,i){ return occupation_list[d.source.index]
+          + " to " + occupation_list[d.target.index]
+          + ":\n " + parseInt(d.source.value);      
+    });
+
+
+// Returns an array of ick angles and labels, given a group.
+function groupTicks(d) {
+  var k = (d.endAngle - d.startAngle) / d.value;
+  return d3.range(0, d.value, 1000).map(function(v, i) {
+    return {
+      angle: v * k + d.startAngle,
+      label: i % 5 ? null : v / 1000 + "k"   //**
+		};
+	});
+	}}	
+});
+
+
+/////////////////////////////////////////////histogram layout//////////////////////////////////////////////////////////////////
+d3.text("files/log_diff_pearson.csv", function(error, data) {
+	if (error) {  					
+	console.log(error);  			
+    } else {   
+	
+sourcefile = d3.csv.parseRows(data,function(data){
+				index = d3.range(data.length);
+				index.forEach(function(j){
+				data[j] = +data[j];
+				});
+			return data;
+			});
+			
+sourcefile = d3.transpose(sourcefile);
+
+hist_group = svg.append("g").attr("id","hist_short");
+ 
+var maxy=1 ,maxy2=1 ;
+
+indexrange = d3.range(sourcefile.length);
+/*indexrange.forEach(function(i){	
+	histogram = d3.layout.histogram_mine()
+					.range(Range)
+					.bins(x.ticks(bnum))
+					.frequency(1)
+					.occup_indx(i);	
+	
+	histogram_draw = histogram(sourcefile[i]);		
+	histogramArray.push(histogram_draw);
+	
+	index_draw = d3.range(data);
+	index_draw.forEach(function(j){
+	if(index_draw[j].y>maxy)
+		maxy = index_draw[j].y;
+	});
+if(maxy>maxy2)
+	maxy2 = maxy;
+
+});
+
+console.log(maxy2);*/
+
+indexrange.forEach(function(i){
+
+histogram = d3.layout.histogram_mine()
+					.range(Range)
+					.bins(x.ticks(bnum))
+					.frequency(1)
+					.occup_indx(i);
+					
+histogram_draw = histogram(sourcefile[i]);
+
+histogramArray.push(histogram_draw);
+
+indexAngle = i;
+
+mi = d3.svg.arc()
+		.innerRadius(function(d,i){return (d.x+1)/2*subradius+Radius;})
+		.outerRadius(function(d,i){return (d.x+d.dx+1)/2*subradius+Radius;})	
+		.startAngle(function(d,i){return Math.PI*2/arcNum*(indexAngle+1/2)-d.y/8500;})
+		.endAngle(function(d,i){return Math.PI*2/arcNum*(indexAngle+1/2)+d.y/8500;});
+		
+	
+/*histograms = hist_group.append("g").selectAll("g")
+	.data(histogram_draw)
+	.enter().append("g")
+	.style("fill","steelblue")
+	.style("stroke","white")
+	.append("path")
+	.attr("class","arc")
+	.attr("d",mi)
+	.on("mouseover", function(){d3.select(this).style("fill", "orange")})
+	.on("mouseout", function(){d3.select(this).style("fill", "steelblue")})
+	.on("click",click_hist)
+
+	.append("title")
+		.text(function(d,i){
+				return "R("+d.x+","+(d.x+d.dx)+")\n"
+				+"num of people="+d.y;}
+				);		
+		});	
+	}*/
+	
+histograms = hist_group.append("g").selectAll("g")
+	.data(histogram_draw)
+	.enter().append("g")
+	.style("stroke","white")
+	.style("fill", "steelblue")
+	.append("path")
+	.attr("class","arc")
+	.attr("d",mi)
+	.append("canvas")
+	.on("mouseover", function(){d3.select(this).style("fill", "orange")})
+	.on("mouseout", function(){d3.select(this).style("fill", "steelblue")})
+	.on("click",click_hist)
+	.append("title")
+		.text(function(d,i){
+				return "R("+d.x+","+(d.x+d.dx)+")\n"
+				+"num of people="+d.y;}
+				);		
+		});	
+	}
+	
+mi_long = d3.svg.arc()
+		.innerRadius(function(d,i){return (d.x+1)/2*subradius+Radius;})
+		.outerRadius(function(d,i){return (d.x+d.dx+1)/2*subradius+Radius;})	
+		.startAngle(function(d,i){return Math.PI*3/2 - d.y/5000*arcNum/2;})
+		.endAngle(function(d,i){return d.y/5000*arcNum/2 + Math.PI*3/2;});
+});
+
+/*d3.text("files/log_diff_pearson.csv", function(error, data) {
+	if (error) {  					
+	console.log(error);  			
+    } else {   
+	
+sourcefile = d3.csv.parseRows(data,function(data){
+				index = d3.range(data.length);
+				index.forEach(function(j){
+				data[j] = +data[j];
+				});
+			return data;
+			});
+			
+//console.log(sourcefile);
+			
+sourcefile = d3.transpose(sourcefile);
+
+ hist_group = svg.append("g").attr("id","hist_short");
+ 
+indexrange = d3.range(sourcefile.length);
+
+indexrange.forEach(function(i){
+
+histogram = d3.layout.histogram_mine()
+					.range(Range)
+					.bins(x.ticks(bnum))
+					.frequency(1)
+					.occup_indx(i);
+					
+histogram_draw = histogram(sourcefile[i]);
+
+histogramArray.push(histogram_draw);
+				
+indexAngle = i;
+var maxdy;
+
+mi = d3.svg.arc()
+		.innerRadius(function(d,i){return (d.x+1)/2*subradius+Radius;})
+		.outerRadius(function(d,i){return (d.x+d.dx+1)/2*subradius+Radius;})	
+		.startAngle(function(d,i){return Math.PI*2/arcNum*(indexAngle+1/2)-d.y/maxdy/2})
+		.endAngle(function(d,i){return Math.PI*2/arcNum*(indexAngle+1/2)+d.y/maxdy/2});
+		
+	
+histograms = hist_group.append("g").selectAll("g")
+	.data(histogram_draw)
+	.enter().append("g")
+	.style("fill","steelblue")
+	.style("stroke","white")
+	.append("path")
+	.attr("class","arc")
+	.attr("d",mi)
+	.on("mouseover", function(){d3.select(this).style("fill", "orange")})
+	.on("mouseout", function(){d3.select(this).style("fill", "steelblue")})
+	.on("click",click_hist)
+
+	.append("title")
+		.text(function(d,i){
+				return "R("+d.x+","+(d.x+d.dx)+")\n"
+				+"num of people="+d.y;}
+				);		
+		});	
+	}
+	
+
+	
+mi_long = d3.svg.arc()
+		.innerRadius(function(d,i){return (d.x+1)/2*subradius+Radius;})
+		.outerRadius(function(d,i){return (d.x+d.dx+1)/2*subradius+Radius;})	
+		.startAngle(function(d,i){return Math.PI*3/2 - d.y/5000*arcNum/2;})
+		.endAngle(function(d,i){return d.y/5000*arcNum/2 + Math.PI*3/2;});
+});
+*/
+/////////////////////////////////foreground///////////////////////////////////////////////////
+ 
+
+
+
+
+/////////////////////////////function boundary//////////////////////////function boundary/////////////////////////////////	
+
+
+
+
+</script>
